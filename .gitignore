@@ -14,3 +14,4 @@ media/
 .mypy_cache/
 .idea/
 .vscode/
+.worktrees/

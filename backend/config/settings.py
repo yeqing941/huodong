@@ -25,6 +25,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "apps.core.middleware.CoreRequestMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -67,3 +68,5 @@ STATIC_URL = "static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / os.getenv("MEDIA_ROOT", "media")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+CORE_RATE_LIMIT = int(os.getenv("CORE_RATE_LIMIT", "60"))
+CORE_RATE_LIMIT_WINDOW = int(os.getenv("CORE_RATE_LIMIT_WINDOW", "60"))

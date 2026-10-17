@@ -116,8 +116,11 @@ def activities(request):
     order = "-" if request.GET.get("order", "desc") == "desc" else ""
     if sort in {"created_at", "game_name", "activity_name"}:
         queryset = queryset.order_by(f"{order}{sort}")
-    page = max(int(request.GET.get("page", 1)), 1)
-    page_size = min(max(int(request.GET.get("page_size", 20)), 1), 100)
+    try:
+        page = max(int(request.GET.get("page", 1)), 1)
+        page_size = min(max(int(request.GET.get("page_size", 20)), 1), 100)
+    except (TypeError, ValueError):
+        return error_response(400, "invalid_parameter", "分页参数无效")
     return JsonResponse({"data": list_payload(queryset.distinct(), request, page, page_size), "meta": {}})
 
 
@@ -181,6 +184,8 @@ def activity_detail(request, activity_id):
         except (json.JSONDecodeError, ValueError):
             return error_response(400, "invalid_activity", "活动字段无效")
         return JsonResponse({"data": activity_payload(activity, request), "meta": {}})
+    if activity.status == Activity.STATUS_ARCHIVED and user.role != "admin":
+        return error_response(404, "not_found", "资源不存在")
     if request.method != "GET":
         return error_response(405, "method_not_allowed", "请求方法不支持")
     return JsonResponse({"data": activity_payload(activity, request), "meta": {}})
@@ -207,8 +212,11 @@ def favorites(request):
     if failure:
         return failure
     queryset = Activity.objects.filter(favorites__user=user).select_related("game_type").prefetch_related("tags", "screenshots")
-    page = max(int(request.GET.get("page", 1)), 1)
-    page_size = min(max(int(request.GET.get("page_size", 20)), 1), 100)
+    try:
+        page = max(int(request.GET.get("page", 1)), 1)
+        page_size = min(max(int(request.GET.get("page_size", 20)), 1), 100)
+    except (TypeError, ValueError):
+        return error_response(400, "invalid_parameter", "分页参数无效")
     return JsonResponse({"data": list_payload(queryset, request, page, page_size), "meta": {}})
 
 

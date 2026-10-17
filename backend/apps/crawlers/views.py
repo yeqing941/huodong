@@ -55,7 +55,9 @@ def configs(request, config_id=None):
             except (json.JSONDecodeError, TypeError):
                 return error_response(400, "invalid_config", "配置无效")
         if request.method == "DELETE":
-            item.delete()
+            item.enabled = False
+            item.auto_paused = True
+            item.save(update_fields=["enabled", "auto_paused", "updated_at"])
             return JsonResponse({}, status=204)
         return error_response(405, "method_not_allowed", "请求方法不支持")
     if request.method == "GET":

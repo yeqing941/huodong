@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { session } from "../stores/session";
 
 const route = useRoute();
 const router = useRouter();
-const activePath = computed(() => route.path);
 const menu = [
   { path: "/activities", label: "活动库" },
   { path: "/favorites", label: "我的收藏" },
   { path: "/crawler", label: "爬虫任务" },
   { path: "/reviews", label: "AI 审核" },
-  { path: "/settings", label: "系统设置" },
+  { path: "/settings", label: "分类管理", adminOnly: true },
 ];
-
+const activePath = computed(() => {
+  const currentPath = route.path;
+  return menu.find((item) => currentPath === item.path || currentPath.startsWith(`${item.path}/`))?.path ?? currentPath;
+});
+const visibleMenu = computed(() => menu.filter((entry) => !entry.adminOnly || session.user?.role === "admin"));
 function logout() {
   localStorage.removeItem("activity-reference-token");
   router.push("/login");
@@ -24,7 +28,7 @@ function logout() {
     <el-aside width="220px" class="sidebar">
       <div class="brand">活动参考库</div>
       <el-menu :default-active="activePath" router>
-        <el-menu-item v-for="item in menu" :key="item.path" :index="item.path">{{ item.label }}</el-menu-item>
+        <el-menu-item v-for="item in visibleMenu" :key="item.path" :index="item.path">{{ item.label }}</el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>

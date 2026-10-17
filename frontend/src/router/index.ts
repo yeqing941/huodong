@@ -4,6 +4,7 @@ import ActivityEntryView from "../views/ActivityEntryView.vue";
 import ActivityDetailView from "../views/ActivityDetailView.vue";
 import ActivityLibraryView from "../views/ActivityLibraryView.vue";
 import LoginView from "../views/LoginView.vue";
+import TagManagementView from "../views/TagManagementView.vue";
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -21,7 +22,7 @@ export const router = createRouter({
         { path: "favorites", name: "favorites", component: ActivityLibraryView, meta: { roles: ["user", "operator", "admin"] } },
         { path: "crawler", name: "crawler", component: ActivityLibraryView, meta: { roles: ["operator", "admin"], placeholder: true } },
         { path: "reviews", name: "reviews", component: ActivityLibraryView, meta: { roles: ["operator", "admin"], placeholder: true } },
-        { path: "settings", name: "settings", component: ActivityLibraryView, meta: { roles: ["admin"], placeholder: true } },
+        { path: "settings", name: "settings", component: TagManagementView, meta: { roles: ["admin"] } },
       ],
     },
   ],

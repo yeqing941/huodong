@@ -23,6 +23,8 @@ export interface TagOption {
   name: string;
   parent_id: string | null;
   level: number;
+  is_active?: boolean;
+  children?: TagOption[];
 }
 
 export interface Activity {

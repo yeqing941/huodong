@@ -13,14 +13,30 @@ export interface ApiResponse<T> {
   meta: Record<string, unknown>;
 }
 
+export interface GameTypeOption {
+  id: string;
+  name: string;
+}
+
+export interface TagOption {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  level: number;
+}
+
 export interface Activity {
   id: string;
+  source_url: string;
+  source_site: string;
   game_name: string;
   activity_name: string;
+  activity_start: string | null;
+  activity_end: string | null;
   status: string;
   description: string;
   is_favorite: boolean;
-  game_type: { id: string; name: string };
+  game_type: GameTypeOption;
   tags: Array<{ id: string; name: string; level: number }>;
   screenshots: Array<{ id: string; url: string; caption: string; sort_order: number }>;
 }

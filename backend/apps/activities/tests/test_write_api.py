@@ -43,6 +43,27 @@ class ActivityWriteApiTests(TestCase):
         response = self.client.post(reverse("activities"), data=json.dumps(self.payload()), content_type="application/json", **self.auth(self.user))
         self.assertEqual(response.status_code, 403)
 
+    def test_created_activity_can_be_loaded_by_detail_api(self):
+        response = self.client.post(
+            reverse("activities"),
+            data=json.dumps(self.payload()),
+            content_type="application/json",
+            **self.auth(self.operator),
+        )
+        self.assertEqual(response.status_code, 201)
+        activity_id = response.json()["data"]["id"]
+
+        detail = self.client.get(
+            reverse("activity-detail", args=[activity_id]),
+            **self.auth(self.user),
+        )
+
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.json()["data"]["activity_name"], "新活动")
+        self.assertEqual(detail.json()["data"]["game_name"], "新游戏")
+        self.assertEqual(detail.json()["data"]["tags"][0]["name"], "签到")
+        self.assertEqual(detail.json()["data"]["screenshots"][0]["url"], "/media/activities/new.png")
+
     def test_admin_can_archive_and_restore_activity(self):
         activity = Activity.objects.create(
             source_url="https://example.com/archive",

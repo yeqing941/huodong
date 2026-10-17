@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { request } from "../services/http";
+import { session } from "../stores/session";
 import type { Activity, ActivityPage } from "../types/api";
 
 const route = useRoute();
+const router = useRouter();
+const canCreate = computed(() => session.user?.role === "operator" || session.user?.role === "admin");
 const isPlaceholder = computed(() => Boolean(route.meta.placeholder));
 const keyword = ref("");
 const selectedType = ref("");
@@ -55,7 +58,7 @@ watch([keyword, selectedType, selectedTag], loadActivities);
     <el-result icon="info" title="功能开发中" sub-title="该模块已预留路由，当前阶段暂未实现业务操作。" />
   </section>
   <section v-else>
-    <div class="page-heading"><div><h2>{{ route.name === "favorites" ? "我的收藏" : "活动库" }}</h2><p>按活动形式、游戏类型和游戏名称快速定位参考素材</p></div><el-button type="primary">新增活动</el-button></div>
+    <div class="page-heading"><div><h2>{{ route.name === "favorites" ? "我的收藏" : "活动库" }}</h2><p>按活动形式、游戏类型和游戏名称快速定位参考素材</p></div><el-button v-if="canCreate" type="primary" @click="router.push('/activities/new')">新增活动</el-button></div>
     <el-card class="filters" shadow="never">
       <el-input v-model="keyword" placeholder="搜索活动或游戏名称" clearable />
       <el-select v-model="selectedType" placeholder="游戏类型" clearable><el-option label="RPG" value="RPG" /><el-option label="策略" value="策略" /></el-select>
@@ -65,10 +68,10 @@ watch([keyword, selectedType, selectedTag], loadActivities);
     <el-alert v-if="!loading && total === 0" title="暂无活动数据，请先完成活动入库配置" type="info" :closable="false" />
     <el-row v-else v-loading="loading" :gutter="16">
       <el-col v-for="activity in activities" :key="activity.id" :xs="24" :sm="12" :lg="8">
-        <el-card class="activity-card" shadow="hover">
+        <el-card class="activity-card" shadow="hover" @click="router.push(`/activities/${activity.id}`)">
           <img v-if="activity.screenshots[0]" :src="activity.screenshots[0].url" :alt="activity.activity_name" class="cover" />
           <div class="activity-body">
-            <div class="activity-title"><strong>{{ activity.activity_name }}</strong><el-button text @click="toggleFavorite(activity)">{{ activity.is_favorite ? "已收藏" : "收藏" }}</el-button></div>
+            <div class="activity-title"><strong>{{ activity.activity_name }}</strong><el-button text @click.stop="toggleFavorite(activity)">{{ activity.is_favorite ? "已收藏" : "收藏" }}</el-button></div>
             <div>{{ activity.game_name }} · {{ activity.game_type.name }}</div>
             <div class="tags"><el-tag v-for="tag in activity.tags.slice(0, 2)" :key="tag.id" size="small">{{ tag.name }}</el-tag></div>
           </div>

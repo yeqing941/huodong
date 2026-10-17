@@ -1,7 +1,8 @@
 import json
-import uuid
+from datetime import date
 
 from django.core.paginator import Paginator
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
@@ -68,18 +69,26 @@ def activities(request):
         if not has_permission(user, "activity:write"):
             return error_response(403, "forbidden", "无权创建活动")
         try:
-            body = json.loads(request.body or "{}")
+            is_multipart = request.content_type.startswith("multipart/")
+            if is_multipart:
+                body = request.POST.dict()
+                body["tag_ids"] = request.POST.getlist("tag_ids")
+            else:
+                body = json.loads(request.body or "{}")
             game_type = GameType.objects.get(pk=body["game_type_id"], is_active=True)
             tag_list = list(Tag.objects.filter(pk__in=body.get("tag_ids", []), is_active=True))
-            if not body.get("screenshot") or not tag_list:
+            if not tag_list or (not is_multipart and not body.get("screenshot")):
                 return error_response(400, "invalid_activity", "活动至少需要一张截图和一个启用标签")
+            values = _validate_activity_fields(body)
             activity = Activity.objects.create(
-                source_url=body["source_url"],
-                source_site=body.get("source_site", "manual"),
-                game_name=body["game_name"],
+                source_url=values["source_url"],
+                source_site=values.get("source_site", "manual"),
+                game_name=values["game_name"],
                 game_type=game_type,
-                activity_name=body["activity_name"],
-                description=body.get("description", ""),
+                activity_name=values["activity_name"],
+                activity_start=values.get("activity_start"),
+                activity_end=values.get("activity_end"),
+                description=values.get("description", ""),
                 created_by=user,
                 status=Activity.STATUS_ACTIVE,
             )
@@ -112,11 +121,68 @@ def activities(request):
     return JsonResponse({"data": list_payload(queryset.distinct(), request, page, page_size), "meta": {}})
 
 
+def _parse_date(value, field_name):
+    if value in (None, ""):
+        return None
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{field_name}日期无效")
+
+
+def _validate_activity_fields(body, activity=None):
+    values = {}
+    for field in ("source_url", "source_site", "game_name", "activity_name", "description"):
+        if field in body:
+            values[field] = body[field]
+    for field in ("source_url", "game_name", "activity_name"):
+        if field in values and not str(values[field]).strip():
+            raise ValueError(f"{field}不能为空")
+    if "source_site" in values and values["source_site"] not in dict(Activity.SOURCE_CHOICES):
+        raise ValueError("来源站点无效")
+    for field in ("activity_start", "activity_end"):
+        if field in body:
+            values[field] = _parse_date(body[field], field)
+    start = values.get("activity_start", getattr(activity, "activity_start", None))
+    end = values.get("activity_end", getattr(activity, "activity_end", None))
+    if start and end and start > end:
+        raise ValueError("活动开始时间不能晚于结束时间")
+    if "game_type_id" in body:
+        try:
+            values["game_type"] = GameType.objects.get(pk=body["game_type_id"], is_active=True)
+        except (GameType.DoesNotExist, ValueError, TypeError):
+            raise ValueError("游戏类型不存在或已停用")
+    if "tag_ids" in body:
+        tag_list = list(Tag.objects.filter(pk__in=body.get("tag_ids", []), is_active=True))
+        if not tag_list or len(tag_list) != len(set(body.get("tag_ids", []))):
+            raise ValueError("至少需要一个启用标签")
+        values["tag_list"] = tag_list
+    return values
+
+
 def activity_detail(request, activity_id):
     user, failure = require_user(request, "activity:read")
     if failure:
         return failure
     activity = get_object_or_404(Activity.objects.select_related("game_type").prefetch_related("tags", "screenshots"), pk=activity_id)
+    if request.method == "PATCH":
+        if user.role == "user" or (user.role == "operator" and activity.created_by_id != user.pk):
+            return error_response(403, "forbidden", "无权编辑此活动")
+        try:
+            body = json.loads(request.body or "{}")
+            values = _validate_activity_fields(body, activity)
+            with transaction.atomic():
+                tag_list = values.pop("tag_list", None)
+                for field, value in values.items():
+                    setattr(activity, field, value)
+                activity.save()
+                if tag_list is not None:
+                    activity.tags.set(tag_list)
+        except (json.JSONDecodeError, ValueError):
+            return error_response(400, "invalid_activity", "活动字段无效")
+        return JsonResponse({"data": activity_payload(activity, request), "meta": {}})
+    if request.method != "GET":
+        return error_response(405, "method_not_allowed", "请求方法不支持")
     return JsonResponse({"data": activity_payload(activity, request), "meta": {}})
 
 

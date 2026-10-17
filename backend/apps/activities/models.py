@@ -94,6 +94,25 @@ class ActivityScreenshot(models.Model):
         ordering = ["sort_order", "id"]
 
 
+class ActivityImport(models.Model):
+    STATUS_COMPLETED = "completed"
+    STATUS_PARTIAL = "partial"
+    STATUS_FAILED = "failed"
+    STATUS_CHOICES = [
+        (STATUS_COMPLETED, "完成"),
+        (STATUS_PARTIAL, "部分成功"),
+        (STATUS_FAILED, "失败"),
+    ]
+
+    created_by = models.ForeignKey("accounts.User", on_delete=models.PROTECT, related_name="activity_imports")
+    filename = models.CharField(max_length=255)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    valid_count = models.PositiveIntegerField(default=0)
+    issue_count = models.PositiveIntegerField(default=0)
+    issues = models.JSONField(default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
 class Favorite(models.Model):
     user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="favorites")
     activity = models.ForeignKey(Activity, on_delete=models.CASCADE, related_name="favorites")

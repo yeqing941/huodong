@@ -2,7 +2,8 @@ from django.urls import path
 
 from apps.accounts.views import login, logout, me, permissions
 from apps.activities.views import activity_detail, activities, favorite, favorites, game_types, tags
-from apps.activities.views_write import archive_activity, restore_activity
+from apps.activities.upload import activity_screenshots
+from apps.activities.views_write import archive_activity, activity_import, activity_import_detail, restore_activity
 from apps.core.api import health
 
 urlpatterns = [
@@ -14,6 +15,9 @@ urlpatterns = [
     path("api/v1/activities", activities, name="activities"),
     path("api/v1/activities/<int:activity_id>", activity_detail, name="activity-detail"),
     path("api/v1/activities/<int:activity_id>/favorite", favorite, name="activity-favorite"),
+    path("api/v1/activities/<int:activity_id>/screenshots", activity_screenshots, name="activity-screenshots"),
+    path("api/v1/activities/import", activity_import, name="activity-import"),
+    path("api/v1/activities/import/<int:import_id>", activity_import_detail, name="activity-import-detail"),
     path("api/v1/favorites", favorites, name="favorites"),
     path("api/v1/tags", tags, name="tags"),
     path("api/v1/game-types", game_types, name="game-types"),

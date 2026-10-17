@@ -49,9 +49,12 @@ onMounted(loadActivity);
   <section v-loading="loading">
     <div class="page-heading">
       <el-button @click="router.push('/activities')">返回活动库</el-button>
-      <el-button v-if="activity" type="primary" :loading="favoriteLoading" @click="toggleFavorite">
-        {{ activity.is_favorite ? "取消收藏" : "收藏活动" }}
-      </el-button>
+      <div v-if="activity" class="heading-actions">
+        <el-button @click="router.push(`/activities/${activity.id}/edit`)">编辑活动</el-button>
+        <el-button type="primary" :loading="favoriteLoading" @click="toggleFavorite">
+          {{ activity.is_favorite ? "取消收藏" : "收藏活动" }}
+        </el-button>
+      </div>
     </div>
 
     <el-empty v-if="!loading && !activity" description="活动不存在或加载失败" />
@@ -101,6 +104,7 @@ onMounted(loadActivity);
 
 <style scoped>
 .page-heading { display: flex; justify-content: space-between; margin-bottom: 16px; }
+.heading-actions { display: flex; gap: 8px; }
 .hero { margin-bottom: 16px; }
 .eyebrow { color: #6b7280; }
 h1 { margin: 8px 0 12px; }

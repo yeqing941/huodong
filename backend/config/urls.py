@@ -7,6 +7,7 @@ from apps.activities.views_write import archive_activity, activity_import, activ
 from apps.core.api import health
 from apps.taxonomy.views import game_type_detail, game_type_disable, game_types as taxonomy_game_types, tag_detail, tag_disable, tag_merge, tag_migrate, tags as taxonomy_tags
 from apps.crawlers.views import configs, config_state, failures, tasks
+from apps.reviews.views import admin_review, ai_tag, operator_review, reviews
 
 urlpatterns = [
     path("api/v1/health", health, name="health"),
@@ -31,6 +32,11 @@ urlpatterns = [
     path("api/v1/taxonomy/game-types", taxonomy_game_types, name="taxonomy-game-types"),
     path("api/v1/taxonomy/game-types/<int:game_type_id>", game_type_detail, name="taxonomy-game-type-detail"),
     path("api/v1/taxonomy/game-types/<int:game_type_id>/disable", game_type_disable, name="taxonomy-game-type-disable"),
+    path("api/v1/reviews", reviews, name="reviews"),
+    path("api/v1/reviews/<int:review_id>", reviews, name="review-detail"),
+    path("api/v1/reviews/<int:review_id>/ai-tag", ai_tag, name="review-ai-tag"),
+    path("api/v1/reviews/<int:review_id>/operator", operator_review, name="review-operator"),
+    path("api/v1/reviews/<int:review_id>/admin", admin_review, name="review-admin"),
     path("api/v1/crawler/configs", configs, name="crawler-configs"),
     path("api/v1/crawler/configs/<int:config_id>", configs, name="crawler-config-detail"),
     path("api/v1/crawler/configs/<int:config_id>/enable", lambda request, config_id: config_state(request, config_id, True), name="crawler-config-enable"),

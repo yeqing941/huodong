@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from apps.accounts.models import User
@@ -18,6 +18,16 @@ class AuthApiTests(TestCase):
             password="secret",
             role="operator",
         )
+
+    def test_real_http_login_does_not_require_csrf_cookie(self):
+        response = Client(enforce_csrf_checks=True).post(
+            reverse("auth-login"),
+            {"email": "user@example.com", "password": "secret"},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["data"]["access_token"])
 
     def test_login_returns_bearer_token_and_user(self):
         response = self.client.post(

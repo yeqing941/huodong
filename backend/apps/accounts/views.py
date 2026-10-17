@@ -6,6 +6,7 @@ import jwt
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import User
 from .permissions import ROLE_PERMISSIONS
@@ -41,6 +42,7 @@ def user_from_request(request):
     return user
 
 
+@csrf_exempt
 def login(request):
     if request.method != "POST":
         return error_response(405, "method_not_allowed", "请求方法不支持")

@@ -4,7 +4,7 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? "/api/v1";
 
 export class ApiRequestError extends Error {
   constructor(public readonly status: number, public readonly payload: ApiError) {
-    super(payload.error.message);
+    super(payload.error?.message ?? `请求失败（HTTP ${status}）`);
   }
 }
 

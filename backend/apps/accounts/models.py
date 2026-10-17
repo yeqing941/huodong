@@ -21,6 +21,9 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["username"]
+
     def save(self, *args, **kwargs):
         self.is_active = self.status == self.STATUS_ACTIVE
         super().save(*args, **kwargs)

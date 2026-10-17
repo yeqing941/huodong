@@ -3,19 +3,20 @@ import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { request } from "../services/http";
+import { setSession } from "../stores/session";
 
 const router = useRouter();
-const loading = ref(false);
-const form = reactive({ email: "", password: "" });
+const loading = ref<boolean>(false);
+const form = reactive<{ email: string; password: string }>({ email: "", password: "" });
 
 async function submit() {
   loading.value = true;
   try {
-    const response = await request<{ access_token: string }>("/auth/login", {
+    const response = await request<{ access_token: string; user: import("../types/api").User }>("/auth/login", {
       method: "POST",
       body: JSON.stringify(form),
     });
-    localStorage.setItem("activity-reference-token", response.data.access_token);
+    setSession(response.data.access_token, response.data.user);
     await router.push("/activities");
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : "登录失败");

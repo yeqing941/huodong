@@ -1,0 +1,2778 @@
+openapi: 3.0.3
+info:
+  title: 游戏活动参考库 API
+  version: 1.0.0
+  description: |
+    游戏活动参考库后端接口契约。
+    本文件仅定义接口、请求响应模型、权限边界和错误结构，不包含业务实现。
+servers:
+  - url: /api/v1
+    description: API v1
+
+tags:
+  - name: Auth
+    description: 认证与当前用户权限
+  - name: Activities
+    description: 活动查询与活动关联数据
+  - name: Reviews
+    description: AI 标签审核
+  - name: Tags
+    description: 活动形式标签树管理
+  - name: GameTypes
+    description: 游戏类型管理
+  - name: CrawlerConfigs
+    description: 爬虫来源配置管理
+  - name: CrawlerTasks
+    description: 爬虫任务与失败记录
+  - name: AuditLogs
+    description: 操作审计日志
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 登录
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuth'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: 退出登录
+      responses:
+        '204':
+          description: 已退出登录
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: 获取当前用户
+      responses:
+        '200':
+          description: 当前用户信息
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/permissions:
+    get:
+      tags: [Auth]
+      summary: 获取当前用户权限
+      responses:
+        '200':
+          description: 权限列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePermissions'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /activities:
+    post:
+      tags: [Activities]
+      summary: 新增活动
+      description: 运营和超级管理员可手动录入活动；活动必须包含至少一张截图和一个活动形式标签。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateActivityRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseActivity'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    get:
+      tags: [Activities]
+      summary: 查询活动列表
+      description: 不提供全库 dump、批量导出或批量下载能力。
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Order'
+        - name: tag_id
+          in: query
+          description: 活动形式标签 ID，可重复传递以表达多标签筛选
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+          style: form
+          explode: true
+        - name: game_type_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: game_name
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+        - name: activity_name
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ActivityStatus'
+        - name: include_archived
+          in: query
+          description: 仅超级管理员可设为 true
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 活动分页列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseActivityPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /activities/{activityId}:
+    get:
+      tags: [Activities]
+      summary: 获取活动详情
+      parameters:
+        - $ref: '#/components/parameters/ActivityId'
+      responses:
+        '200':
+          description: 活动详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseActivity'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Activities]
+      summary: 编辑活动
+      parameters:
+        - $ref: '#/components/parameters/ActivityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateActivityRequest'
+      responses:
+        '200':
+          description: 更新后的活动
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseActivity'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /activities/{activityId}/archive:
+    post:
+      tags: [Activities]
+      summary: 归档活动
+      parameters:
+        - $ref: '#/components/parameters/ActivityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArchiveActivityRequest'
+      responses:
+        '200':
+          description: 已归档
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseActivity'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /activities/{activityId}/restore:
+    post:
+      tags: [Activities]
+      summary: 恢复活动
+      parameters:
+        - $ref: '#/components/parameters/ActivityId'
+      responses:
+        '200':
+          description: 已恢复
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseActivity'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /activities/{activityId}/related:
+    get:
+      tags: [Activities]
+      summary: 获取相关活动
+      parameters:
+        - $ref: '#/components/parameters/ActivityId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 8
+            default: 8
+      responses:
+        '200':
+          description: 相关活动列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseActivityList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /activities/stats:
+    get:
+      tags: [Activities]
+      summary: 获取活动统计
+      responses:
+        '200':
+          description: 活动统计
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseActivityStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /activities/{activityId}/favorite:
+    post:
+      tags: [Activities]
+      summary: 收藏活动
+      parameters:
+        - $ref: '#/components/parameters/ActivityId'
+      responses:
+        '204':
+          description: 收藏成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags: [Activities]
+      summary: 取消收藏活动
+      parameters:
+        - $ref: '#/components/parameters/ActivityId'
+      responses:
+        '204':
+          description: 取消收藏成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /favorites:
+    get:
+      tags: [Activities]
+      summary: 查询我的收藏
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Order'
+      responses:
+        '200':
+          description: 我的收藏分页列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseActivityPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /activities/batch-import:
+    post:
+      tags: [Activities]
+      summary: 批量录入活动
+      description: 提交批量录入文件并返回导入任务结果；不提供全库导出能力。
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BatchImportRequest'
+      responses:
+        '202':
+          description: 批量录入已接受
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBatchImport'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /activities/batch-import/{importId}:
+    get:
+      tags: [Activities]
+      summary: 查询批量录入结果
+      parameters:
+        - $ref: '#/components/parameters/ImportId'
+      responses:
+        '200':
+          description: 批量录入结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBatchImport'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /activities/{activityId}/screenshots:
+    post:
+      tags: [Activities]
+      summary: 上传活动截图
+      parameters:
+        - $ref: '#/components/parameters/ActivityId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadScreenshotRequest'
+      responses:
+        '201':
+          description: 截图上传成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseScreenshot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /game-types:
+    get:
+      tags: [GameTypes]
+      summary: 查询游戏类型
+      parameters:
+        - name: include_disabled
+          in: query
+          description: 仅超级管理员可设为 true
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 游戏类型列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGameTypeList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [GameTypes]
+      summary: 新增游戏类型
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGameTypeRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGameType'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /reviews/ai:
+    get:
+      tags: [Reviews]
+      summary: 查询 AI 待审核队列
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: review_status
+          in: query
+          schema:
+            $ref: '#/components/schemas/AIReviewStatus'
+        - name: confidence_lt
+          in: query
+          description: 按 AI 置信度低于指定值筛选，范围 0-1
+          schema:
+            type: number
+            format: float
+            minimum: 0
+            maximum: 1
+      responses:
+        '200':
+          description: 审核队列
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAIReviewPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /reviews/ai/{reviewId}:
+    get:
+      tags: [Reviews]
+      summary: 获取 AI 审核详情
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      responses:
+        '200':
+          description: AI 审核详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAIReview'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /reviews/ai/{reviewId}/operator-submit:
+    post:
+      tags: [Reviews]
+      summary: 运营提交初审结果
+      description: 提交后进入 pending_admin_review，不得直接变为正式活动。
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperatorReviewSubmitRequest'
+      responses:
+        '200':
+          description: 已提交管理员确认
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAIReview'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /reviews/ai/{reviewId}/return:
+    post:
+      tags: [Reviews]
+      summary: 退回 AI 审核记录
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewReturnRequest'
+      responses:
+        '200':
+          description: 已退回
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAIReview'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /reviews/ai/{reviewId}/admin-confirm:
+    post:
+      tags: [Reviews]
+      summary: 管理员最终确认 AI 标签
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminReviewConfirmRequest'
+      responses:
+        '200':
+          description: 已确认并转为正式活动
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAIReview'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /reviews/ai/{reviewId}/admin-correct:
+    post:
+      tags: [Reviews]
+      summary: 管理员修正 AI 标签
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminReviewCorrectRequest'
+      responses:
+        '200':
+          description: 已修正并确认
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAIReview'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /tags/tree:
+    get:
+      tags: [Tags]
+      summary: 获取标签树
+      parameters:
+        - name: include_disabled
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 三级标签树
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTagTree'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /tags:
+    post:
+      tags: [Tags]
+      summary: 新增标签
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTagRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /tags/{tagId}:
+    patch:
+      tags: [Tags]
+      summary: 编辑标签
+      parameters:
+        - $ref: '#/components/parameters/TagId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTagRequest'
+      responses:
+        '200':
+          description: 更新后的标签
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tags/{tagId}/sort:
+    post:
+      tags: [Tags]
+      summary: 调整标签排序
+      parameters:
+        - $ref: '#/components/parameters/TagId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SortRequest'
+      responses:
+        '204':
+          description: 排序成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tags/{tagId}/merge:
+    post:
+      tags: [Tags]
+      summary: 合并标签
+      description: 一级标签不可删除；合并操作必须明确目标标签并迁移关联活动。
+      parameters:
+        - $ref: '#/components/parameters/TagId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MergeTagRequest'
+      responses:
+        '200':
+          description: 合并结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTagMergeResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /tags/{tagId}/migrate:
+    post:
+      tags: [Tags]
+      summary: 迁移标签关联活动
+      parameters:
+        - $ref: '#/components/parameters/TagId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MigrateTagRequest'
+      responses:
+        '200':
+          description: 迁移结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMigrationResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /tags/{tagId}/disable:
+    post:
+      tags: [Tags]
+      summary: 停用标签
+      parameters:
+        - $ref: '#/components/parameters/TagId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisableRequest'
+      responses:
+        '200':
+          description: 停用结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /game-types/{gameTypeId}:
+    patch:
+      tags: [GameTypes]
+      summary: 编辑游戏类型
+      parameters:
+        - $ref: '#/components/parameters/GameTypeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGameTypeRequest'
+      responses:
+        '200':
+          description: 更新后的游戏类型
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGameType'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /game-types/{gameTypeId}/sort:
+    post:
+      tags: [GameTypes]
+      summary: 调整游戏类型排序
+      parameters:
+        - $ref: '#/components/parameters/GameTypeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SortRequest'
+      responses:
+        '204':
+          description: 排序成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /game-types/{gameTypeId}/disable:
+    post:
+      tags: [GameTypes]
+      summary: 停用游戏类型
+      description: 已被活动使用的游戏类型不可物理删除，只能停用或迁移。
+      parameters:
+        - $ref: '#/components/parameters/GameTypeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisableRequest'
+      responses:
+        '200':
+          description: 停用结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseGameType'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /crawler/configs:
+    get:
+      tags: [CrawlerConfigs]
+      summary: 查询爬虫配置
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/CrawlerConfigStatus'
+      responses:
+        '200':
+          description: 爬虫配置分页列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCrawlerConfigPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [CrawlerConfigs]
+      summary: 新增爬虫配置
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCrawlerConfigRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCrawlerConfig'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /crawler/configs/{configId}:
+    get:
+      tags: [CrawlerConfigs]
+      summary: 获取爬虫配置详情
+      parameters:
+        - $ref: '#/components/parameters/ConfigId'
+      responses:
+        '200':
+          description: 配置详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCrawlerConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [CrawlerConfigs]
+      summary: 编辑爬虫配置
+      parameters:
+        - $ref: '#/components/parameters/ConfigId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCrawlerConfigRequest'
+      responses:
+        '200':
+          description: 更新后的配置
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCrawlerConfig'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /crawler/configs/{configId}/enable:
+    post:
+      tags: [CrawlerConfigs]
+      summary: 启用爬虫配置
+      parameters:
+        - $ref: '#/components/parameters/ConfigId'
+      responses:
+        '200':
+          description: 已启用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCrawlerConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /crawler/configs/{configId}/disable:
+    post:
+      tags: [CrawlerConfigs]
+      summary: 停用爬虫配置
+      parameters:
+        - $ref: '#/components/parameters/ConfigId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisableRequest'
+      responses:
+        '200':
+          description: 已停用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCrawlerConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /crawler/tasks:
+    get:
+      tags: [CrawlerTasks]
+      summary: 查询爬虫任务
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Order'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/CrawlerTaskStatus'
+        - name: trigger_type
+          in: query
+          schema:
+            $ref: '#/components/schemas/CrawlerTriggerType'
+        - name: config_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 爬虫任务分页列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCrawlerTaskPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [CrawlerTasks]
+      summary: 手动触发爬虫任务
+      description: 运营只能选择已配置的来源和游戏范围，不能修改规则与调度频率。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCrawlerTaskRequest'
+      responses:
+        '202':
+          description: 任务已接受并异步执行
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCrawlerTask'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /crawler/tasks/{taskId}:
+    get:
+      tags: [CrawlerTasks]
+      summary: 获取爬虫任务详情
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 任务详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCrawlerTask'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /crawler/tasks/{taskId}/retry:
+    post:
+      tags: [CrawlerTasks]
+      summary: 重试爬虫任务失败记录
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '202':
+          description: 重试任务已接受
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCrawlerTask'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /crawler/tasks/{taskId}/failures:
+    get:
+      tags: [CrawlerTasks]
+      summary: 查询任务失败记录
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/CrawlerFailureStatus'
+      responses:
+        '200':
+          description: 失败记录分页列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCrawlerFailurePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /crawler/tasks/{taskId}/failures/{failureId}/retry:
+    post:
+      tags: [CrawlerTasks]
+      summary: 重试单条失败记录
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - $ref: '#/components/parameters/FailureId'
+      responses:
+        '202':
+          description: 单条重试已接受
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCrawlerFailure'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /crawler/stats:
+    get:
+      tags: [CrawlerTasks]
+      summary: 获取爬虫统计
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: 爬虫统计
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCrawlerStats'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /users:
+    get:
+      tags: [Auth]
+      summary: 查询用户列表
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: role
+          in: query
+          schema:
+            $ref: '#/components/schemas/Role'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserStatus'
+      responses:
+        '200':
+          description: 用户分页列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Auth]
+      summary: 新增用户
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: 用户创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUser'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /users/{userId}:
+    patch:
+      tags: [Auth]
+      summary: 编辑用户与角色
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: 更新后的用户
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUser'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /users/{userId}/disable:
+    post:
+      tags: [Auth]
+      summary: 停用用户
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisableRequest'
+      responses:
+        '200':
+          description: 用户已停用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /audit-logs:
+    get:
+      tags: [AuditLogs]
+      summary: 查询操作日志
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: actor_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: object_type
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 审计日志分页列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuditLogPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /audit-logs/{logId}:
+    get:
+      tags: [AuditLogs]
+      summary: 获取操作日志详情
+      parameters:
+        - $ref: '#/components/parameters/LogId'
+      responses:
+        '200':
+          description: 日志详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuditLog'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: page_size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Sort:
+      name: sort
+      in: query
+      schema:
+        type: string
+        enum: [created_at, updated_at, game_name, activity_name]
+        default: created_at
+    Order:
+      name: order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+    ActivityId:
+      name: activityId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ImportId:
+      name: importId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ReviewId:
+      name: reviewId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TagId:
+      name: tagId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    GameTypeId:
+      name: gameTypeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ConfigId:
+      name: configId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    FailureId:
+      name: failureId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    LogId:
+      name: logId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: 请求参数错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+    Unauthorized:
+      description: 未认证或令牌无效
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+    Forbidden:
+      description: 无权限
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+    Conflict:
+      description: 状态冲突或重复资源
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+    TooManyRequests:
+      description: 请求过于频繁
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [account, password]
+      properties:
+        account:
+          type: string
+          minLength: 1
+          maxLength: 100
+        password:
+          type: string
+          minLength: 1
+          format: password
+
+    AuthSession:
+      type: object
+      required: [access_token, token_type, expires_in, user]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          enum: [Bearer]
+        expires_in:
+          type: integer
+          description: Token 有效期，单位为秒
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      required: [id, name, role, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/Role'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    Permission:
+      type: object
+      required: [code, description]
+      properties:
+        code:
+          type: string
+        description:
+          type: string
+
+    Role:
+      type: string
+      enum: [user, operator, admin]
+
+    UserStatus:
+      type: string
+      enum: [active, disabled]
+
+    Activity:
+      type: object
+      required: [id, source_url, source_site, game_name, game_type, activity_name, screenshots, tags, status, created_at, created_by]
+      properties:
+        id:
+          type: string
+          format: uuid
+        source_url:
+          type: string
+          format: uri
+        source_site:
+          type: string
+          enum: [game_ui, official_site, official_community, taptap, manual]
+        game_name:
+          type: string
+        game_type:
+          $ref: '#/components/schemas/GameType'
+        activity_name:
+          type: string
+        activity_start:
+          type: string
+          format: date-time
+          nullable: true
+        activity_end:
+          type: string
+          format: date-time
+          nullable: true
+        screenshots:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ActivityScreenshot'
+        tags:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        description:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/ActivityStatus'
+        collection_method:
+          type: string
+          enum: [crawler, manual, batch_import]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        created_by:
+          oneOf:
+            - $ref: '#/components/schemas/User'
+            - type: string
+              enum: [system]
+        is_favorited:
+          type: boolean
+
+    ActivityScreenshot:
+      type: object
+      required: [id, url, thumbnail_url, sort_order]
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        thumbnail_url:
+          type: string
+          format: uri
+        sort_order:
+          type: integer
+          minimum: 0
+
+    ActivityStatus:
+      type: string
+      enum: [pending_tagging, pending_admin_review, active, archived]
+
+    ActivityStats:
+      type: object
+      required: [total, active, archived, pending_tagging, pending_admin_review]
+      properties:
+        total:
+          type: integer
+          minimum: 0
+        active:
+          type: integer
+          minimum: 0
+        archived:
+          type: integer
+          minimum: 0
+        pending_tagging:
+          type: integer
+          minimum: 0
+        pending_admin_review:
+          type: integer
+          minimum: 0
+
+    TagSummary:
+      type: object
+      required: [id, name, level]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        level:
+          type: integer
+          minimum: 1
+          maximum: 3
+
+    TagNode:
+      allOf:
+        - $ref: '#/components/schemas/TagSummary'
+        - type: object
+          required: [status, sort_order, activity_count, children]
+          properties:
+            parent_id:
+              type: string
+              format: uuid
+              nullable: true
+            description:
+              type: string
+              nullable: true
+            ai_hints:
+              type: array
+              items:
+                type: string
+            status:
+              type: string
+              enum: [active, disabled]
+            sort_order:
+              type: integer
+              minimum: 0
+            activity_count:
+              type: integer
+              minimum: 0
+            children:
+              type: array
+              items:
+                $ref: '#/components/schemas/TagNode'
+
+    GameType:
+      type: object
+      required: [id, name, status, sort_order, activity_count]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, disabled]
+        sort_order:
+          type: integer
+          minimum: 0
+        activity_count:
+          type: integer
+          minimum: 0
+
+    AIReview:
+      type: object
+      required: [id, activity, status, candidates, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        activity:
+          $ref: '#/components/schemas/Activity'
+        status:
+          $ref: '#/components/schemas/AIReviewStatus'
+        candidates:
+          type: array
+          minItems: 0
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/AITagCandidate'
+        selected_tag_ids:
+          type: array
+          maxItems: 3
+          items:
+            type: string
+            format: uuid
+        ai_error_code:
+          type: string
+          nullable: true
+        ai_error_message:
+          type: string
+          nullable: true
+        operator_comment:
+          type: string
+          nullable: true
+        admin_comment:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AIReviewStatus:
+      type: string
+      enum: [pending_tagging, pending_operator_review, pending_admin_review, approved, returned]
+
+    AITagCandidate:
+      type: object
+      required: [tag, confidence]
+      properties:
+        tag:
+          $ref: '#/components/schemas/TagSummary'
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        reason:
+          type: string
+          nullable: true
+
+    CrawlerConfig:
+      type: object
+      required: [id, name, source_site, rule_summary, game_scope, schedule, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        source_site:
+          type: string
+        source_url:
+          type: string
+          format: uri
+        rule_summary:
+          type: string
+        game_scope:
+          type: array
+          items:
+            type: string
+        schedule:
+          type: string
+          description: Cron 表达式或等价调度描述
+        status:
+          $ref: '#/components/schemas/CrawlerConfigStatus'
+        consecutive_failure_count:
+          type: integer
+          minimum: 0
+        last_run_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CrawlerConfigStatus:
+      type: string
+      enum: [enabled, disabled, auto_paused]
+
+    CrawlerTask:
+      type: object
+      required: [id, config_id, source_site, game_scope, trigger_type, status, statistics, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        config_id:
+          type: string
+          format: uuid
+        source_site:
+          type: string
+        game_scope:
+          type: array
+          items:
+            type: string
+        trigger_type:
+          $ref: '#/components/schemas/CrawlerTriggerType'
+        triggered_by:
+          oneOf:
+            - $ref: '#/components/schemas/User'
+            - type: string
+              enum: [system]
+        status:
+          $ref: '#/components/schemas/CrawlerTaskStatus'
+        stage:
+          type: string
+          nullable: true
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        finished_at:
+          type: string
+          format: date-time
+          nullable: true
+        statistics:
+          $ref: '#/components/schemas/CrawlerTaskStatistics'
+        error_summary:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CrawlerTriggerType:
+      type: string
+      enum: [scheduled, manual]
+
+    CrawlerTaskStatus:
+      type: string
+      enum: [queued, running, completed, partial, failed, cancelled]
+
+    CrawlerTaskStatistics:
+      type: object
+      required: [new_count, duplicate_count, failed_count, pending_tagging_count]
+      properties:
+        new_count:
+          type: integer
+          minimum: 0
+        duplicate_count:
+          type: integer
+          minimum: 0
+        failed_count:
+          type: integer
+          minimum: 0
+        pending_tagging_count:
+          type: integer
+          minimum: 0
+
+    CrawlerFailure:
+      type: object
+      required: [id, task_id, url, error_type, error_message, status, retry_count, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        task_id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        error_type:
+          type: string
+          enum: [not_found, timeout, blocked, parse_error, unknown]
+        error_message:
+          type: string
+        status:
+          $ref: '#/components/schemas/CrawlerFailureStatus'
+        retry_count:
+          type: integer
+          minimum: 0
+        last_retried_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CrawlerFailureStatus:
+      type: string
+      enum: [pending_retry, retrying, resolved, exhausted]
+
+    AuditLog:
+      type: object
+      required: [id, actor, action, object_type, object_id, result, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        actor:
+          oneOf:
+            - $ref: '#/components/schemas/User'
+            - type: string
+              enum: [system]
+        action:
+          type: string
+        object_type:
+          type: string
+        object_id:
+          type: string
+        result:
+          type: string
+          enum: [success, failure]
+        before_data:
+          type: object
+          additionalProperties: true
+          nullable: true
+        after_data:
+          type: object
+          additionalProperties: true
+          nullable: true
+        comment:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    LoginData:
+      $ref: '#/components/schemas/AuthSession'
+
+    PageMeta:
+      type: object
+      required: [page, page_size, total, total_pages]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
+        total_pages:
+          type: integer
+          minimum: 0
+
+    ApiResponseBase:
+      type: object
+      required: [data]
+      properties:
+        data: {}
+        meta:
+          type: object
+          additionalProperties: true
+
+    ApiError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
+        request_id:
+          type: string
+
+    ApiErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: '#/components/schemas/ApiError'
+
+    ApiResponseAuth:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/AuthSession'
+
+    ApiResponseUser:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/User'
+
+    ApiResponseUserPage:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+
+    ApiResponsePermissions:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Permission'
+
+    ApiResponseActivity:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Activity'
+
+    ApiResponseActivityList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Activity'
+
+    ApiResponseActivityPage:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Activity'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+
+    ApiResponseActivityStats:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/ActivityStats'
+
+    ApiResponseScreenshot:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/ActivityScreenshot'
+
+    ApiResponseBatchImport:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/BatchImport'
+
+    ApiResponseGameType:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/GameType'
+
+    ApiResponseGameTypeList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameType'
+
+    ApiResponseAIReview:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/AIReview'
+
+    ApiResponseAIReviewPage:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIReview'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+
+    ApiResponseTag:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/TagNode'
+
+    ApiResponseTagTree:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagNode'
+
+    ApiResponseTagMergeResult:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [source_tag_id, target_tag_id, migrated_activity_count]
+          properties:
+            source_tag_id:
+              type: string
+              format: uuid
+            target_tag_id:
+              type: string
+              format: uuid
+            migrated_activity_count:
+              type: integer
+              minimum: 0
+
+    ApiResponseMigrationResult:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [source_tag_id, target_tag_id, migrated_activity_count]
+          properties:
+            source_tag_id:
+              type: string
+              format: uuid
+            target_tag_id:
+              type: string
+              format: uuid
+            migrated_activity_count:
+              type: integer
+              minimum: 0
+
+    ApiResponseCrawlerConfig:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/CrawlerConfig'
+
+    ApiResponseCrawlerConfigPage:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrawlerConfig'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+
+    ApiResponseCrawlerTask:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/CrawlerTask'
+
+    ApiResponseCrawlerTaskPage:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrawlerTask'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+
+    ApiResponseCrawlerFailure:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/CrawlerFailure'
+
+    ApiResponseCrawlerFailurePage:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrawlerFailure'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+
+    ApiResponseCrawlerStats:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [task_count, completed_count, partial_count, failed_count, new_count, duplicate_count, pending_tagging_count]
+          properties:
+            task_count:
+              type: integer
+              minimum: 0
+            completed_count:
+              type: integer
+              minimum: 0
+            partial_count:
+              type: integer
+              minimum: 0
+            failed_count:
+              type: integer
+              minimum: 0
+            new_count:
+              type: integer
+              minimum: 0
+            duplicate_count:
+              type: integer
+              minimum: 0
+            pending_tagging_count:
+              type: integer
+              minimum: 0
+
+    ApiResponseAuditLog:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/AuditLog'
+
+    ApiResponseAuditLogPage:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLog'
+        meta:
+          $ref: '#/components/schemas/PageMeta'
+
+    CreateUserRequest:
+      type: object
+      required: [name, email, password, role]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+        role:
+          $ref: '#/components/schemas/Role'
+
+    UpdateUserRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/Role'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+
+    CreateActivityRequest:
+      type: object
+      required: [source_url, source_site, game_name, game_type_id, activity_name, screenshot_urls, tag_ids]
+      properties:
+        source_url:
+          type: string
+          format: uri
+        source_site:
+          type: string
+          enum: [game_ui, official_site, official_community, taptap, manual]
+        game_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        game_type_id:
+          type: string
+          format: uuid
+        activity_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        activity_start:
+          type: string
+          format: date-time
+          nullable: true
+        activity_end:
+          type: string
+          format: date-time
+          nullable: true
+        screenshot_urls:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uri
+        tag_ids:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            type: string
+            format: uuid
+        description:
+          type: string
+
+    UpdateActivityRequest:
+      type: object
+      minProperties: 1
+      properties:
+        activity_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        activity_start:
+          type: string
+          format: date-time
+          nullable: true
+        activity_end:
+          type: string
+          format: date-time
+          nullable: true
+        game_type_id:
+          type: string
+          format: uuid
+        tag_ids:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            type: string
+            format: uuid
+        description:
+          type: string
+
+    ArchiveActivityRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+
+    BatchImportRequest:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          format: binary
+        mode:
+          type: string
+          enum: [create_only, create_and_update]
+          default: create_only
+
+    UploadScreenshotRequest:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          format: binary
+        sort_order:
+          type: integer
+          minimum: 0
+
+    BatchImport:
+      type: object
+      required: [id, status, total_rows, success_count, failure_count, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued, processing, completed, partial, failed]
+        total_rows:
+          type: integer
+          minimum: 0
+        success_count:
+          type: integer
+          minimum: 0
+        failure_count:
+          type: integer
+          minimum: 0
+        errors:
+          type: array
+          items:
+            type: object
+            required: [row, message]
+            properties:
+              row:
+                type: integer
+                minimum: 1
+              message:
+                type: string
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateTagRequest:
+      type: object
+      required: [name, level]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        level:
+          type: integer
+          minimum: 1
+          maximum: 3
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+        description:
+          type: string
+        ai_hints:
+          type: array
+          items:
+            type: string
+
+    UpdateTagRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        description:
+          type: string
+        ai_hints:
+          type: array
+          items:
+            type: string
+
+    SortRequest:
+      type: object
+      required: [sort_order]
+      properties:
+        sort_order:
+          type: integer
+          minimum: 0
+
+    MergeTagRequest:
+      type: object
+      required: [target_tag_id, confirm]
+      properties:
+        target_tag_id:
+          type: string
+          format: uuid
+        confirm:
+          type: boolean
+          enum: [true]
+        comment:
+          type: string
+
+    MigrateTagRequest:
+      type: object
+      required: [target_tag_id, confirm]
+      properties:
+        target_tag_id:
+          type: string
+          format: uuid
+        confirm:
+          type: boolean
+          enum: [true]
+        comment:
+          type: string
+
+    DisableRequest:
+      type: object
+      required: [confirm]
+      properties:
+        confirm:
+          type: boolean
+          enum: [true]
+        reason:
+          type: string
+          minLength: 1
+
+    CreateGameTypeRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        description:
+          type: string
+        sort_order:
+          type: integer
+          minimum: 0
+
+    UpdateGameTypeRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        description:
+          type: string
+        sort_order:
+          type: integer
+          minimum: 0
+
+    OperatorReviewSubmitRequest:
+      type: object
+      required: [selected_tag_ids, comment]
+      properties:
+        selected_tag_ids:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            type: string
+            format: uuid
+        comment:
+          type: string
+          minLength: 1
+
+    ReviewReturnRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+
+    AdminReviewConfirmRequest:
+      type: object
+      required: [confirm, comment]
+      properties:
+        confirm:
+          type: boolean
+          enum: [true]
+        comment:
+          type: string
+          minLength: 1
+
+    AdminReviewCorrectRequest:
+      type: object
+      required: [selected_tag_ids, comment]
+      properties:
+        selected_tag_ids:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            type: string
+            format: uuid
+        comment:
+          type: string
+          minLength: 1
+
+    CreateCrawlerConfigRequest:
+      type: object
+      required: [name, source_site, source_url, rule_summary, game_scope, schedule]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        source_site:
+          type: string
+          maxLength: 100
+        source_url:
+          type: string
+          format: uri
+        rule_summary:
+          type: string
+          minLength: 1
+        game_scope:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        schedule:
+          type: string
+          minLength: 1
+
+    UpdateCrawlerConfigRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        source_url:
+          type: string
+          format: uri
+        rule_summary:
+          type: string
+        game_scope:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        schedule:
+          type: string
+
+    CreateCrawlerTaskRequest:
+      type: object
+      required: [config_id, game_scope]
+      properties:
+        config_id:
+          type: string
+          format: uuid
+        game_scope:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        idempotency_key:
+          type: string
+          maxLength: 100
+          description: 防止重复触发同一手动任务
+
+security:
+  - bearerAuth: []

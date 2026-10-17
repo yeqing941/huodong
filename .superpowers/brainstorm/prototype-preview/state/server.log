@@ -1,0 +1,3 @@
+{"type":"server-started","port":59250,"host":"0.0.0.0","url_host":"localhost","url":"http://localhost:59250","screen_dir":"e:\\huodong\\.superpowers\\brainstorm\\prototype-preview\\content","state_dir":"e:\\huodong\\.superpowers\\brainstorm\\prototype-preview\\state"}
+{"type":"screen-added","file":"e:\\huodong\\.superpowers\\brainstorm\\prototype-preview\\content\\layout-option-a.html"}
+{"type":"server-stopped","reason":"idle timeout"}

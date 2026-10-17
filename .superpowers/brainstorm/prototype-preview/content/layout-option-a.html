@@ -1,0 +1,30 @@
+<style>
+  .preview-shell{display:grid;grid-template-columns:220px 1fr;min-height:620px;background:#f5f7fb;border:1px solid #dfe5ee;border-radius:18px;overflow:hidden;color:#1b2533;font-family:Inter,system-ui,sans-serif}
+  .preview-side{background:#182433;color:#d8e1ed;padding:22px 16px}
+  .preview-brand{font-weight:800;font-size:18px;color:#fff;margin-bottom:34px;letter-spacing:-.02em}
+  .preview-nav{display:grid;gap:6px}.preview-nav div{padding:11px 12px;border-radius:9px;font-size:13px}.preview-nav .active{background:#2d80ed;color:#fff}.preview-nav .group{margin-top:18px;color:#8291a6;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+  .preview-main{padding:28px 32px}.preview-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}.preview-title{font-size:25px;font-weight:800;letter-spacing:-.03em}.preview-user{font-size:12px;color:#68778b;background:#fff;border:1px solid #e2e8f0;border-radius:99px;padding:8px 12px}
+  .preview-toolbar{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid #e1e7ef;padding:13px;border-radius:12px;margin-bottom:18px}.preview-input{flex:1;border:1px solid #d8e0ea;border-radius:8px;padding:9px 11px;color:#8a96a5;font-size:12px}.preview-select{border:1px solid #d8e0ea;border-radius:8px;padding:9px 11px;color:#637286;background:#fff;font-size:12px}.preview-button{background:#2d80ed;color:white;border:0;border-radius:8px;padding:10px 14px;font-weight:700;font-size:12px}
+  .preview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.preview-card{background:#fff;border:1px solid #e1e7ef;border-radius:12px;overflow:hidden}.preview-image{height:106px;background:linear-gradient(135deg,#dcecff,#8bb8ef 55%,#213f7c);position:relative}.preview-image:after{content:'活动截图';position:absolute;bottom:9px;left:10px;color:#fff;font-size:11px;background:#182433aa;padding:4px 7px;border-radius:5px}.preview-cardbody{padding:12px}.preview-cardtitle{font-weight:800;font-size:13px;margin-bottom:5px}.preview-meta{font-size:11px;color:#738196;margin-bottom:9px}.preview-tag{display:inline-block;color:#2d6fcb;background:#edf5ff;border-radius:5px;padding:4px 6px;font-size:10px;margin-right:4px}.preview-count{margin-top:18px;color:#748196;font-size:11px}
+  .preview-note{margin-top:18px;padding:12px 14px;background:#eef6ff;border-left:3px solid #2d80ed;border-radius:8px;color:#49627f;font-size:12px;line-height:1.55}
+</style>
+<h2>方案 A：专业后台工作台</h2>
+<p class="subtitle">重点观察：左侧角色导航、筛选工具栏、截图卡片密度和运营工作台入口</p>
+<div class="preview-shell">
+  <aside class="preview-side">
+    <div class="preview-brand">活动参考库</div>
+    <div class="preview-nav">
+      <div class="active">活动库</div><div>我的收藏</div><div class="group">采集工作台</div><div>爬虫任务</div><div>AI 待审核</div><div class="group">管理设置</div><div>标签树</div><div>爬虫配置</div><div>用户与权限</div><div>操作日志</div>
+    </div>
+  </aside>
+  <main class="preview-main">
+    <div class="preview-top"><div><div class="preview-title">活动库</div><div class="preview-count">共 128 条活动参考</div></div><div class="preview-user">运营 · 林晓</div></div>
+    <div class="preview-toolbar"><div class="preview-input">搜索游戏名称或活动名称</div><div class="preview-select">活动形式：全部</div><div class="preview-select">游戏类型：全部</div><button class="preview-button">新增活动</button></div>
+    <div class="preview-grid">
+      <div class="preview-card"><div class="preview-image"></div><div class="preview-cardbody"><div class="preview-cardtitle">周年庆登录奖励</div><div class="preview-meta">原神 · 二次元</div><span class="preview-tag">登录奖励</span><span class="preview-tag">签到</span></div></div>
+      <div class="preview-card"><div class="preview-image" style="background:linear-gradient(135deg,#f8d1a4,#dc6c5f 55%,#511f4d)"></div><div class="preview-cardbody"><div class="preview-cardtitle">限时抽奖活动</div><div class="preview-meta">明日方舟 · 卡牌</div><span class="preview-tag">抽奖</span><span class="preview-tag">限时活动</span></div></div>
+      <div class="preview-card"><div class="preview-image" style="background:linear-gradient(135deg,#d9f1db,#58a47a 55%,#173d4a)"></div><div class="preview-cardbody"><div class="preview-cardtitle">赛季任务通行证</div><div class="preview-meta">崩坏：星穹铁道 · RPG</div><span class="preview-tag">任务</span><span class="preview-tag">通行证</span></div></div>
+    </div>
+    <div class="preview-note">这一方向强调高频运营操作：导航清晰、筛选常驻、卡片信息密度适中，适合作为完整 MVP 原型的基础。</div>
+  </main>
+</div>

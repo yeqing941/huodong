@@ -3,6 +3,7 @@ import json
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
 
 from apps.accounts.views import error_response, user_from_request
 from apps.audit.services import record_audit
@@ -33,6 +34,7 @@ def _json(request):
         raise ValueError("invalid_json")
 
 
+@csrf_exempt
 def tags(request):
     user = user_from_request(request)
     if not user:
@@ -59,6 +61,7 @@ def tags(request):
     return JsonResponse({"data": _tag_data(tag), "meta": {}}, status=201)
 
 
+@csrf_exempt
 def tag_detail(request, tag_id):
     _, failure = _admin(request)
     if failure:
@@ -83,6 +86,7 @@ def tag_detail(request, tag_id):
     return JsonResponse({"data": _tag_data(tag), "meta": {}})
 
 
+@csrf_exempt
 def tag_disable(request, tag_id):
     _, failure = _admin(request)
     if failure:
@@ -129,14 +133,17 @@ def _move_tag(request, tag_id, merge=False):
     return JsonResponse({"data": _tag_data(source), "meta": {}})
 
 
+@csrf_exempt
 def tag_migrate(request, tag_id):
     return _move_tag(request, tag_id)
 
 
+@csrf_exempt
 def tag_merge(request, tag_id):
     return _move_tag(request, tag_id, merge=True)
 
 
+@csrf_exempt
 def game_types(request):
     user = user_from_request(request)
     if not user:
@@ -157,6 +164,7 @@ def game_types(request):
     return JsonResponse({"data": _game_type_data(item), "meta": {}}, status=201)
 
 
+@csrf_exempt
 def game_type_detail(request, game_type_id):
     _, failure = _admin(request)
     if failure:
@@ -175,6 +183,7 @@ def game_type_detail(request, game_type_id):
     return JsonResponse({"data": _game_type_data(item), "meta": {}})
 
 
+@csrf_exempt
 def game_type_disable(request, game_type_id):
     _, failure = _admin(request)
     if failure:

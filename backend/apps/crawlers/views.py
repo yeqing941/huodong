@@ -3,6 +3,7 @@ import json
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
 
 from apps.accounts.permissions import has_permission
 from apps.accounts.views import error_response, user_from_request
@@ -33,6 +34,7 @@ def payload_failure(item):
     return {"id": item.pk, "task_id": item.task_id, "url": item.url, "error_type": item.error_type, "reason": item.reason, "retry_count": item.retry_count, "last_retried_at": item.last_retried_at.isoformat() if item.last_retried_at else None, "status": item.status}
 
 
+@csrf_exempt
 def configs(request, config_id=None):
     user, failure = auth(request)
     if failure:
@@ -77,6 +79,7 @@ def configs(request, config_id=None):
     return error_response(405, "method_not_allowed", "请求方法不支持")
 
 
+@csrf_exempt
 def config_state(request, config_id, enabled):
     user, failure = auth(request)
     if failure:
@@ -92,6 +95,7 @@ def config_state(request, config_id, enabled):
     return JsonResponse({"data": payload_config(item), "meta": {}})
 
 
+@csrf_exempt
 def tasks(request, task_id=None, retry=False):
     user, failure = auth(request)
     if failure:
@@ -126,6 +130,7 @@ def tasks(request, task_id=None, retry=False):
     return error_response(405, "method_not_allowed", "请求方法不支持")
 
 
+@csrf_exempt
 def failures(request, task_id, failure_id=None):
     user, failure = auth(request)
     if failure:

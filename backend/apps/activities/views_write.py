@@ -3,6 +3,7 @@ import json
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 
 from apps.accounts.permissions import has_permission
@@ -14,6 +15,7 @@ from .models import Activity, ActivityImport
 from .views import activity_payload
 
 
+@csrf_exempt
 def archive_activity(request, activity_id):
     user = user_from_request(request)
     if not user:
@@ -34,6 +36,7 @@ def archive_activity(request, activity_id):
     return JsonResponse({"data": activity_payload(activity, request), "meta": {}})
 
 
+@csrf_exempt
 def restore_activity(request, activity_id):
     user = user_from_request(request)
     if not user:
@@ -48,6 +51,7 @@ def restore_activity(request, activity_id):
     return JsonResponse({"data": activity_payload(activity, request), "meta": {}})
 
 
+@csrf_exempt
 def activity_import(request):
     user = user_from_request(request)
     if not user:

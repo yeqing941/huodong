@@ -73,6 +73,7 @@ def permissions(request):
     return JsonResponse({"data": {"role": user.role, "permissions": sorted(ROLE_PERMISSIONS.get(user.role, set()))}, "meta": {}})
 
 
+@csrf_exempt
 def logout(request):
     if not user_from_request(request):
         return error_response(401, "unauthorized", "请先登录")

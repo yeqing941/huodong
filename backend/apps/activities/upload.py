@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
 
 from apps.accounts.views import error_response, user_from_request
 
@@ -15,6 +16,7 @@ def _can_edit(user, activity):
     return user and (user.role == "admin" or (user.role == "operator" and activity.created_by_id == user.pk))
 
 
+@csrf_exempt
 def activity_screenshots(request, activity_id):
     user = user_from_request(request)
     if not user:

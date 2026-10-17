@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from apps.accounts.models import User
@@ -46,6 +46,14 @@ class ActivityApiTests(TestCase):
         remove = self.client.delete(reverse("activity-favorite", args=[self.activity.pk]), **self.headers)
         self.assertEqual(remove.status_code, 204)
         self.assertFalse(Favorite.objects.filter(user=self.user, activity=self.activity).exists())
+
+    def test_favorite_bearer_post_is_not_blocked_by_csrf(self):
+        client = Client(enforce_csrf_checks=True)
+
+        response = client.post(reverse("activity-favorite", args=[self.activity.pk]), **self.headers)
+
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.content, b"")
 
     def test_activity_api_requires_login(self):
         response = self.client.get(reverse("activities"))

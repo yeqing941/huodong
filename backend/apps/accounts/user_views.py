@@ -3,6 +3,7 @@ import json
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
 
 from apps.audit.services import record_audit
 from .models import User
@@ -19,6 +20,7 @@ def _admin(request):
     return user, None
 
 
+@csrf_exempt
 def users(request):
     _, failure = _admin(request)
     if failure:
@@ -43,6 +45,7 @@ def users(request):
     return JsonResponse({"data": serialize_user(user), "meta": {}}, status=201)
 
 
+@csrf_exempt
 def user_detail(request, user_id):
     actor, failure = _admin(request)
     if failure:
@@ -72,6 +75,7 @@ def user_detail(request, user_id):
     return JsonResponse({"data": after, "meta": {}})
 
 
+@csrf_exempt
 def user_state(request, user_id, enabled):
     actor, failure = _admin(request)
     if failure:

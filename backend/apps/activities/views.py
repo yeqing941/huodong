@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
 
 from apps.accounts.permissions import has_permission
 from apps.accounts.views import error_response, user_from_request
@@ -61,6 +62,7 @@ def require_user(request, permission=None):
     return user, None
 
 
+@csrf_exempt
 def activities(request):
     user, failure = require_user(request, "activity:read")
     if failure:
@@ -163,6 +165,7 @@ def _validate_activity_fields(body, activity=None):
     return values
 
 
+@csrf_exempt
 def activity_detail(request, activity_id):
     user, failure = require_user(request, "activity:read")
     if failure:
@@ -191,6 +194,7 @@ def activity_detail(request, activity_id):
     return JsonResponse({"data": activity_payload(activity, request), "meta": {}})
 
 
+@csrf_exempt
 def favorite(request, activity_id):
     user, failure = require_user(request, "favorite:write")
     if failure:

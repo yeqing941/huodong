@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
 
 from apps.accounts.views import login, logout, me, permissions
 from apps.accounts.user_views import user_detail, user_state, users
@@ -19,8 +20,8 @@ urlpatterns = [
     path("api/v1/auth/permissions", permissions, name="auth-permissions"),
     path("api/v1/users", users, name="users"),
     path("api/v1/users/<int:user_id>", user_detail, name="user-detail"),
-    path("api/v1/users/<int:user_id>/disable", lambda request, user_id: user_state(request, user_id, False), name="user-disable"),
-    path("api/v1/users/<int:user_id>/enable", lambda request, user_id: user_state(request, user_id, True), name="user-enable"),
+    path("api/v1/users/<int:user_id>/disable", csrf_exempt(lambda request, user_id: user_state(request, user_id, False)), name="user-disable"),
+    path("api/v1/users/<int:user_id>/enable", csrf_exempt(lambda request, user_id: user_state(request, user_id, True)), name="user-enable"),
     path("api/v1/audit-logs", audit_logs, name="audit-logs"),
     path("api/v1/activities", activities, name="activities"),
     path("api/v1/activities/<int:activity_id>", activity_detail, name="activity-detail"),
@@ -46,11 +47,11 @@ urlpatterns = [
     path("api/v1/reviews/<int:review_id>/admin", admin_review, name="review-admin"),
     path("api/v1/crawler/configs", configs, name="crawler-configs"),
     path("api/v1/crawler/configs/<int:config_id>", configs, name="crawler-config-detail"),
-    path("api/v1/crawler/configs/<int:config_id>/enable", lambda request, config_id: config_state(request, config_id, True), name="crawler-config-enable"),
-    path("api/v1/crawler/configs/<int:config_id>/disable", lambda request, config_id: config_state(request, config_id, False), name="crawler-config-disable"),
+    path("api/v1/crawler/configs/<int:config_id>/enable", csrf_exempt(lambda request, config_id: config_state(request, config_id, True)), name="crawler-config-enable"),
+    path("api/v1/crawler/configs/<int:config_id>/disable", csrf_exempt(lambda request, config_id: config_state(request, config_id, False)), name="crawler-config-disable"),
     path("api/v1/crawler/tasks", tasks, name="crawler-tasks"),
     path("api/v1/crawler/tasks/<int:task_id>", tasks, name="crawler-task-detail"),
-    path("api/v1/crawler/tasks/<int:task_id>/retry", lambda request, task_id: tasks(request, task_id, True), name="crawler-task-retry"),
+    path("api/v1/crawler/tasks/<int:task_id>/retry", csrf_exempt(lambda request, task_id: tasks(request, task_id, True)), name="crawler-task-retry"),
     path("api/v1/crawler/tasks/<int:task_id>/failures", failures, name="crawler-failures"),
     path("api/v1/crawler/tasks/<int:task_id>/failures/<int:failure_id>/retry", failures, name="crawler-failure-retry"),
     path(

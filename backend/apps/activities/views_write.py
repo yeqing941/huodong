@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from apps.accounts.permissions import has_permission
 from apps.accounts.views import error_response, user_from_request
+from apps.audit.services import record_audit
 
 from .importers import import_activity_csv
 from .models import Activity, ActivityImport
@@ -29,6 +30,7 @@ def archive_activity(request, activity_id):
     activity.status = Activity.STATUS_ARCHIVED
     activity.archived_at = timezone.now()
     activity.save(update_fields=["status", "archived_at", "updated_at"])
+    record_audit(user, "activity_archive", "activity", activity.pk, before_data={"status": "active"}, after_data={"status": activity.status}, note=body["reason"])
     return JsonResponse({"data": activity_payload(activity, request), "meta": {}})
 
 
@@ -42,6 +44,7 @@ def restore_activity(request, activity_id):
     activity.status = Activity.STATUS_ACTIVE
     activity.archived_at = None
     activity.save(update_fields=["status", "archived_at", "updated_at"])
+    record_audit(user, "activity_restore", "activity", activity.pk, before_data={"status": "archived"}, after_data={"status": activity.status})
     return JsonResponse({"data": activity_payload(activity, request), "meta": {}})
 
 

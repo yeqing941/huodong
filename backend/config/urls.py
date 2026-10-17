@@ -1,6 +1,8 @@
 from django.urls import path
 
 from apps.accounts.views import login, logout, me, permissions
+from apps.accounts.user_views import user_detail, user_state, users
+from apps.audit.views import audit_logs
 from apps.activities.views import activity_detail, activities, favorite, favorites, game_types, tags
 from apps.activities.upload import activity_screenshots
 from apps.activities.views_write import archive_activity, activity_import, activity_import_detail, restore_activity
@@ -15,6 +17,11 @@ urlpatterns = [
     path("api/v1/auth/logout", logout, name="auth-logout"),
     path("api/v1/auth/me", me, name="auth-me"),
     path("api/v1/auth/permissions", permissions, name="auth-permissions"),
+    path("api/v1/users", users, name="users"),
+    path("api/v1/users/<int:user_id>", user_detail, name="user-detail"),
+    path("api/v1/users/<int:user_id>/disable", lambda request, user_id: user_state(request, user_id, False), name="user-disable"),
+    path("api/v1/users/<int:user_id>/enable", lambda request, user_id: user_state(request, user_id, True), name="user-enable"),
+    path("api/v1/audit-logs", audit_logs, name="audit-logs"),
     path("api/v1/activities", activities, name="activities"),
     path("api/v1/activities/<int:activity_id>", activity_detail, name="activity-detail"),
     path("api/v1/activities/<int:activity_id>/favorite", favorite, name="activity-favorite"),

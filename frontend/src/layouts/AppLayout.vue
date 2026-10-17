@@ -12,6 +12,8 @@ const menu = [
   { path: "/crawler/settings", label: "爬虫配置", adminOnly: true },
   { path: "/reviews", label: "AI 审核" },
   { path: "/settings", label: "分类管理", adminOnly: true },
+  { path: "/settings/users", label: "用户管理", adminOnly: true },
+  { path: "/settings/audit-logs", label: "审计日志", adminOnly: true },
 ];
 const activePath = computed(() => {
   const currentPath = route.path;

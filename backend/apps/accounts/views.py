@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import User
 from .permissions import ROLE_PERMISSIONS
 from .serializers import serialize_user
+from apps.audit.services import record_audit
 
 
 def error_response(status: int, code: str, message: str, details=None):
@@ -52,7 +53,9 @@ def login(request):
         return error_response(400, "invalid_json", "请求体不是有效 JSON")
     user = authenticate(request, username=body.get("email", ""), password=body.get("password", ""))
     if not user or user.status != User.STATUS_ACTIVE:
+        record_audit(user, "login_failure", "auth", user.pk if user else "", success=False, note="invalid_credentials")
         return error_response(401, "invalid_credentials", "邮箱或密码错误")
+    record_audit(user, "login_success", "auth", user.pk)
     return JsonResponse({"data": {"access_token": token_for(user), "token_type": "Bearer", "expires_in": 28800, "user": serialize_user(user)}, "meta": {}})
 
 

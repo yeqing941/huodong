@@ -9,6 +9,8 @@ import CrawlerTaskView from "../views/CrawlerTaskView.vue";
 import CrawlerConfigView from "../views/CrawlerConfigView.vue";
 import CrawlerTaskDetail from "../views/CrawlerTaskDetail.vue";
 import AIReviewView from "../views/AIReviewView.vue";
+import UserManagementView from "../views/UserManagementView.vue";
+import AuditLogView from "../views/AuditLogView.vue";
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -28,6 +30,8 @@ export const router = createRouter({
         { path: "crawler/tasks/:id", name: "crawler-task-detail", component: CrawlerTaskDetail, meta: { roles: ["operator", "admin"] } },
         { path: "reviews", name: "reviews", component: AIReviewView, meta: { roles: ["operator", "admin"] } },
         { path: "settings", name: "settings", component: TagManagementView, meta: { roles: ["admin"] } },
+        { path: "settings/users", name: "user-management", component: UserManagementView, meta: { roles: ["admin"] } },
+        { path: "settings/audit-logs", name: "audit-logs", component: AuditLogView, meta: { roles: ["admin"] } },
         { path: "crawler/settings", name: "crawler-settings", component: CrawlerConfigView, meta: { roles: ["admin"] } },
       ],
     },

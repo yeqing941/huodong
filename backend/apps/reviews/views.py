@@ -6,6 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from apps.accounts.permissions import has_permission
 from apps.accounts.views import error_response, user_from_request
+from apps.audit.services import record_audit
 from apps.activities.models import Activity, Tag
 
 from .models import ReviewRecord
@@ -139,4 +140,5 @@ def admin_review(request, review_id):
     else:
         return error_response(400, "invalid_action", "管理员操作无效")
     review.save(update_fields=["admin_note", "status", "updated_at"])
+    record_audit(user, "review_status_change", "review", review.pk, after_data={"status": review.status}, note=action)
     return JsonResponse({"data": _payload(review), "meta": {}})

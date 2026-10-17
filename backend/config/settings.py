@@ -14,6 +14,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "apps.core",
     "apps.accounts",
+    "apps.audit",
     "apps.activities",
     "apps.taxonomy",
     "apps.crawlers",

@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 
 from apps.accounts.permissions import has_permission
 from apps.accounts.views import error_response, user_from_request
+from apps.audit.services import record_audit
 
 from .models import CrawlerConfig, CrawlerFailure, CrawlerTask
 from .services import create_task, retry_failure
@@ -49,6 +50,7 @@ def configs(request, config_id=None):
                     if field in body:
                         setattr(item, field, body[field])
                 item.save()
+                record_audit(user, "crawler_config_update", "crawler_config", item.pk, after_data=payload_config(item))
                 return JsonResponse({"data": payload_config(item), "meta": {}})
             except (json.JSONDecodeError, TypeError):
                 return error_response(400, "invalid_config", "配置无效")
@@ -97,6 +99,7 @@ def tasks(request, task_id=None, retry=False):
         if retry and request.method == "POST":
             for item in task.failures.filter(status__in=[CrawlerFailure.STATUS_PENDING, CrawlerFailure.STATUS_FAILED]):
                 retry_failure(item)
+            record_audit(user, "crawler_task_retry", "crawler_task", task.pk, after_data=payload_task(task))
             return JsonResponse({"data": payload_task(task), "meta": {}}, status=202)
         if request.method == "GET":
             data = payload_task(task)

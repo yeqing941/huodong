@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
 from apps.accounts.views import error_response, user_from_request
+from apps.audit.services import record_audit
 from apps.activities.models import GameType, Tag
 
 
@@ -93,6 +94,7 @@ def tag_disable(request, tag_id):
         return error_response(409, "state_conflict", "仍有启用子标签，不能停用")
     tag.is_active = False
     tag.save(update_fields=["is_active"])
+    record_audit(request.auth_user, "tag_disable", "tag", tag.pk, before_data={"is_active": True}, after_data={"is_active": False})
     return JsonResponse({"data": _tag_data(tag), "meta": {}})
 
 
@@ -123,6 +125,7 @@ def _move_tag(request, tag_id, merge=False):
                 source.save(update_fields=["is_active"])
     except (KeyError, Tag.DoesNotExist, ValueError):
         return error_response(400, "invalid_tag", "迁移目标无效")
+    record_audit(request.auth_user, "tag_merge" if merge else "tag_migrate", "tag", source.pk, after_data={"target_id": str(target.pk), "is_active": source.is_active})
     return JsonResponse({"data": _tag_data(source), "meta": {}})
 
 
@@ -181,4 +184,5 @@ def game_type_disable(request, game_type_id):
     item = get_object_or_404(GameType, pk=game_type_id)
     item.is_active = False
     item.save(update_fields=["is_active"])
+    record_audit(request.auth_user, "game_type_disable", "game_type", item.pk, before_data={"is_active": True}, after_data={"is_active": False})
     return JsonResponse({"data": _game_type_data(item), "meta": {}})

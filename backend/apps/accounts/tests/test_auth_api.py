@@ -40,6 +40,8 @@ class AuthApiTests(TestCase):
         self.assertEqual(response.json()["data"]["token_type"], "Bearer")
         self.assertTrue(response.json()["data"]["access_token"])
         self.assertEqual(response.json()["data"]["user"]["role"], "user")
+        from apps.audit.models import AuditLog
+        self.assertTrue(AuditLog.objects.filter(action="login_success", actor=self.user, success=True).exists())
 
     def test_invalid_password_returns_401_error(self):
         response = self.client.post(
@@ -51,6 +53,8 @@ class AuthApiTests(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.json()["error"]["code"], "invalid_credentials")
         self.assertIn("request_id", response.json()["error"])
+        from apps.audit.models import AuditLog
+        self.assertTrue(AuditLog.objects.filter(action="login_failure", success=False).exists())
 
     def test_disabled_user_cannot_login(self):
         self.user.status = "disabled"

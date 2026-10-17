@@ -51,6 +51,34 @@ export interface ActivityPage {
   total_pages: number;
 }
 
+export interface CrawlerConfig {
+  id: number;
+  source: string;
+  rule_summary: string;
+  game_scope: string[];
+  cron: string;
+  enabled: boolean;
+  consecutive_failures: number;
+  auto_paused: boolean;
+  last_run_at: string | null;
+}
+
+export interface CrawlerTask {
+  id: number;
+  config_id: number;
+  status: string;
+  trigger_type: string;
+  source: string;
+  game_scope: string[];
+  discovered_count: number;
+  new_count: number;
+  duplicate_count: number;
+  failed_count: number;
+  pending_tagging_count: number;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
 export interface ApiError {
   error: {
     code: string;

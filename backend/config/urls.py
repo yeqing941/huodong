@@ -6,6 +6,7 @@ from apps.activities.upload import activity_screenshots
 from apps.activities.views_write import archive_activity, activity_import, activity_import_detail, restore_activity
 from apps.core.api import health
 from apps.taxonomy.views import game_type_detail, game_type_disable, game_types as taxonomy_game_types, tag_detail, tag_disable, tag_merge, tag_migrate, tags as taxonomy_tags
+from apps.crawlers.views import configs, config_state, failures, tasks
 
 urlpatterns = [
     path("api/v1/health", health, name="health"),
@@ -30,6 +31,15 @@ urlpatterns = [
     path("api/v1/taxonomy/game-types", taxonomy_game_types, name="taxonomy-game-types"),
     path("api/v1/taxonomy/game-types/<int:game_type_id>", game_type_detail, name="taxonomy-game-type-detail"),
     path("api/v1/taxonomy/game-types/<int:game_type_id>/disable", game_type_disable, name="taxonomy-game-type-disable"),
+    path("api/v1/crawler/configs", configs, name="crawler-configs"),
+    path("api/v1/crawler/configs/<int:config_id>", configs, name="crawler-config-detail"),
+    path("api/v1/crawler/configs/<int:config_id>/enable", lambda request, config_id: config_state(request, config_id, True), name="crawler-config-enable"),
+    path("api/v1/crawler/configs/<int:config_id>/disable", lambda request, config_id: config_state(request, config_id, False), name="crawler-config-disable"),
+    path("api/v1/crawler/tasks", tasks, name="crawler-tasks"),
+    path("api/v1/crawler/tasks/<int:task_id>", tasks, name="crawler-task-detail"),
+    path("api/v1/crawler/tasks/<int:task_id>/retry", lambda request, task_id: tasks(request, task_id, True), name="crawler-task-retry"),
+    path("api/v1/crawler/tasks/<int:task_id>/failures", failures, name="crawler-failures"),
+    path("api/v1/crawler/tasks/<int:task_id>/failures/<int:failure_id>/retry", failures, name="crawler-failure-retry"),
     path(
         "api/v1/activities/<int:activity_id>/archive",
         archive_activity,

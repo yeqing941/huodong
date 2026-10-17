@@ -16,6 +16,7 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.activities",
     "apps.taxonomy",
+    "apps.crawlers",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

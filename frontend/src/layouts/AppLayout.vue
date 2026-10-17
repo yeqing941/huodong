@@ -9,6 +9,7 @@ const menu = [
   { path: "/activities", label: "活动库" },
   { path: "/favorites", label: "我的收藏" },
   { path: "/crawler", label: "爬虫任务" },
+  { path: "/crawler/settings", label: "爬虫配置", adminOnly: true },
   { path: "/reviews", label: "AI 审核" },
   { path: "/settings", label: "分类管理", adminOnly: true },
 ];
